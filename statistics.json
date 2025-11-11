@@ -1,0 +1,13 @@
+{
+  "total_children": 1000,
+  "good_children": 953,
+  "naughty_children": 47,
+  "total_stops": 953,
+  "total_refills": 181,
+  "total_distance_km": 730702.62,
+  "total_time_hours": 1477.29,
+  "max_weight": 1000.0,
+  "max_volume": 100.0,
+  "speed_kmh": 500.0,
+  "generated_at": "2025-11-11T12:29:28.714971"
+}
