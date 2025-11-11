@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Santa's Route Planner Dashboard</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            color: #d32f2f;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #d32f2f;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .map-container {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        #map {
+            height: 600px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .control-panel {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .control-panel h2 {
+            color: #d32f2f;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+
+        .simulation-controls {
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            margin: 5px 0;
+            border: none;
+            border-radius: 6px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+
+        .btn-primary {
+            background: #d32f2f;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #b71c1c;
+            transform: scale(1.02);
+        }
+
+        .btn-secondary {
+            background: #4caf50;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #388e3c;
+            transform: scale(1.02);
+        }
+
+        .btn-tertiary {
+            background: #2196f3;
+            color: white;
+        }
+
+        .btn-tertiary:hover {
+            background: #1976d2;
+            transform: scale(1.02);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .progress-section {
+            margin-top: 20px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #e0e0e0;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4caf50, #8bc34a);
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .current-stop {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            border-left: 4px solid #d32f2f;
+        }
+
+        .current-stop h3 {
+            color: #d32f2f;
+            margin-bottom: 10px;
+        }
+
+        .trip-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e3f2fd;
+            border-radius: 8px;
+        }
+
+        .trip-info h3 {
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+
+        .legend {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 8px;
+        }
+
+        .legend h3 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+            border: 2px solid #333;
+        }
+
+        @media (max-width: 968px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .header h1 {
+                font-size: 1.8em;
+            }
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2em;
+            color: white;
+        }
+
+        .snowflake {
+            position: fixed;
+            top: -10px;
+            z-index: 9999;
+            user-select: none;
+            cursor: default;
+            animation: snowfall 10s linear infinite;
+            color: white;
+            font-size: 1em;
+        }
+
+        @keyframes snowfall {
+            0% {
+                transform: translateY(0vh) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(360deg);
+                opacity: 0.3;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎅 Santa's Route Planner Dashboard 🎄</h1>
+        <p>Optimized Delivery Route with Real-time Tracking</p>
+    </div>
+
+    <div class="container">
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <div class="stat-value" id="totalChildren">-</div>
+                <div class="stat-label">Total Children</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="goodChildren">-</div>
+                <div class="stat-label">Good Children</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalStops">-</div>
+                <div class="stat-label">Delivery Stops</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalRefills">-</div>
+                <div class="stat-label">Refill Stops</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalDistance">-</div>
+                <div class="stat-label">Total Distance (km)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalTime">-</div>
+                <div class="stat-label">Total Time (hours)</div>
+            </div>
+        </div>
+
+        <div class="content-grid">
+            <div class="map-container">
+                <h2 style="color: #d32f2f; margin-bottom: 15px;">🗺️ Delivery Route Map</h2>
+                <div id="map"></div>
+            </div>
+
+            <div class="control-panel">
+                <h2>⚙️ Simulation Controls</h2>
+                <div class="simulation-controls">
+                    <button class="btn btn-primary" id="startBtn">▶️ Start Simulation</button>
+                    <button class="btn btn-secondary" id="pauseBtn" disabled>⏸️ Pause</button>
+                    <button class="btn btn-tertiary" id="resetBtn">🔄 Reset</button>
+                </div>
+
+                <div class="progress-section">
+                    <h3 style="margin-bottom: 10px;">Delivery Progress</h3>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill" style="width: 0%">0%</div>
+                    </div>
+
+                    <div class="current-stop" id="currentStop">
+                        <h3>Current Status</h3>
+                        <p>Ready to start delivery simulation</p>
+                    </div>
+                </div>
+
+                <div class="trip-info" id="tripInfo">
+                    <h3>Trip Information</h3>
+                    <p>Current Trip: <strong id="currentTrip">-</strong></p>
+                    <p>Stops in Trip: <strong id="stopsInTrip">-</strong></p>
+                    <p>Distance Covered: <strong id="distanceCovered">0 km</strong></p>
+                </div>
+
+                <div class="legend">
+                    <h3>Map Legend</h3>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #ff0000;"></div>
+                        <span>North Pole (Start/Refill)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #4caf50;"></div>
+                        <span>Good Children (To Visit)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #ffa500;"></div>
+                        <span>Current Location</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #9e9e9e;"></div>
+                        <span>Visited</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #000000;"></div>
+                        <span>Naughty Children</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let map;
+        let routePlan = [];
+        let childrenData = [];
+        let statistics = {};
+        let currentStopIndex = 0;
+        let isSimulating = false;
+        let simulationInterval = null;
+        let markers = {};
+        let routeLines = [];
+        let currentLocationMarker = null;
+
+        // Initialize the application
+        async function init() {
+            try {
+                // Load data
+                await loadData();
+
+                // Initialize map
+                initMap();
+
+                // Display statistics
+                displayStatistics();
+
+                // Plot all children
+                plotChildren();
+
+                // Setup event listeners
+                setupEventListeners();
+
+                // Add snow effect
+                createSnowflakes();
+            } catch (error) {
+                console.error('Error initializing dashboard:', error);
+                alert('Error loading data. Please make sure santa_planner.py has been run first.');
+            }
+        }
+
+        // Load JSON data
+        async function loadData() {
+            const [routeResponse, childrenResponse, statsResponse] = await Promise.all([
+                fetch('route_plan.json'),
+                fetch('children_data.json'),
+                fetch('statistics.json')
+            ]);
+
+            routePlan = await routeResponse.json();
+            childrenData = await childrenResponse.json();
+            statistics = await statsResponse.json();
+        }
+
+        // Initialize the map
+        function initMap() {
+            map = L.map('map').setView([0, 0], 2);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 18,
+            }).addTo(map);
+
+            // Add North Pole marker
+            const northPoleMarker = L.marker([90, 0], {
+                icon: L.divIcon({
+                    className: 'custom-marker',
+                    html: '<div style="background: #ff0000; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.5);"></div>',
+                    iconSize: [20, 20]
+                })
+            }).addTo(map);
+            northPoleMarker.bindPopup('<b>🎅 North Pole</b><br>Santa\'s Workshop');
+        }
+
+        // Plot all children on the map
+        function plotChildren() {
+            childrenData.forEach(child => {
+                const isNaughty = child.naughty === 1;
+                const color = isNaughty ? '#000000' : '#4caf50';
+
+                const marker = L.circleMarker([child.latitude, child.longitude], {
+                    radius: 4,
+                    fillColor: color,
+                    color: '#fff',
+                    weight: 1,
+                    opacity: 1,
+                    fillOpacity: 0.8
+                }).addTo(map);
+
+                marker.bindPopup(`
+                    <b>Child #${child.child}</b><br>
+                    Wish: Article ${child.wish}<br>
+                    Status: ${isNaughty ? '❌ Naughty' : '✅ Good'}
+                `);
+
+                markers[child.child] = marker;
+            });
+        }
+
+        // Display statistics
+        function displayStatistics() {
+            document.getElementById('totalChildren').textContent = statistics.total_children;
+            document.getElementById('goodChildren').textContent = statistics.good_children;
+            document.getElementById('totalStops').textContent = statistics.total_stops;
+            document.getElementById('totalRefills').textContent = statistics.total_refills;
+            document.getElementById('totalDistance').textContent = statistics.total_distance_km.toLocaleString();
+            document.getElementById('totalTime').textContent = statistics.total_time_hours.toFixed(1);
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            document.getElementById('startBtn').addEventListener('click', startSimulation);
+            document.getElementById('pauseBtn').addEventListener('click', pauseSimulation);
+            document.getElementById('resetBtn').addEventListener('click', resetSimulation);
+        }
+
+        // Start simulation
+        function startSimulation() {
+            if (currentStopIndex >= routePlan.length) {
+                resetSimulation();
+                return;
+            }
+
+            isSimulating = true;
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('pauseBtn').disabled = false;
+
+            simulationInterval = setInterval(simulateNextStop, 100); // Fast simulation
+        }
+
+        // Pause simulation
+        function pauseSimulation() {
+            isSimulating = false;
+            clearInterval(simulationInterval);
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('pauseBtn').disabled = true;
+        }
+
+        // Reset simulation
+        function resetSimulation() {
+            pauseSimulation();
+            currentStopIndex = 0;
+
+            // Reset all markers
+            Object.values(markers).forEach(marker => {
+                marker.setStyle({ fillColor: '#4caf50' });
+            });
+
+            // Remove route lines
+            routeLines.forEach(line => map.removeLayer(line));
+            routeLines = [];
+
+            // Remove current location marker
+            if (currentLocationMarker) {
+                map.removeLayer(currentLocationMarker);
+                currentLocationMarker = null;
+            }
+
+            // Reset UI
+            document.getElementById('progressFill').style.width = '0%';
+            document.getElementById('progressFill').textContent = '0%';
+            document.getElementById('currentStop').innerHTML = '<h3>Current Status</h3><p>Ready to start delivery simulation</p>';
+            document.getElementById('currentTrip').textContent = '-';
+            document.getElementById('stopsInTrip').textContent = '-';
+            document.getElementById('distanceCovered').textContent = '0 km';
+            document.getElementById('startBtn').disabled = false;
+        }
+
+        // Simulate next stop
+        function simulateNextStop() {
+            if (currentStopIndex >= routePlan.length) {
+                pauseSimulation();
+                document.getElementById('currentStop').innerHTML = '<h3>🎉 Delivery Complete!</h3><p>All presents have been delivered!</p>';
+                return;
+            }
+
+            const stop = routePlan[currentStopIndex];
+            const progress = ((currentStopIndex + 1) / routePlan.length * 100).toFixed(1);
+
+            // Update progress bar
+            document.getElementById('progressFill').style.width = `${progress}%`;
+            document.getElementById('progressFill').textContent = `${progress}%`;
+
+            if (stop.stop === 0) {
+                // Refill stop
+                document.getElementById('currentStop').innerHTML = `
+                    <h3>🎁 Refilling at North Pole</h3>
+                    <p>Loading Article ${stop.article}: ${stop.pieces} pieces</p>
+                `;
+
+                // Draw line back to North Pole if we're coming from somewhere
+                if (currentLocationMarker) {
+                    const line = L.polyline([
+                        currentLocationMarker.getLatLng(),
+                        [90, 0]
+                    ], {
+                        color: '#ff0000',
+                        weight: 2,
+                        opacity: 0.5
+                    }).addTo(map);
+                    routeLines.push(line);
+
+                    map.removeLayer(currentLocationMarker);
+                }
+
+                // Update current location to North Pole
+                currentLocationMarker = L.marker([90, 0], {
+                    icon: L.divIcon({
+                        className: 'custom-marker',
+                        html: '<div style="background: #ffa500; width: 15px; height: 15px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 10px rgba(255,165,0,0.8);"></div>',
+                        iconSize: [15, 15]
+                    })
+                }).addTo(map);
+            } else {
+                // Delivery stop
+                const child = childrenData.find(c => c.child === stop.stop);
+                if (child) {
+                    document.getElementById('currentStop').innerHTML = `
+                        <h3>🎅 Delivering to Child #${child.child}</h3>
+                        <p>Location: ${child.latitude.toFixed(2)}°, ${child.longitude.toFixed(2)}°</p>
+                        <p>Gift: Article ${child.wish}</p>
+                    `;
+
+                    // Draw line from current location to this child
+                    if (currentLocationMarker) {
+                        const line = L.polyline([
+                            currentLocationMarker.getLatLng(),
+                            [child.latitude, child.longitude]
+                        ], {
+                            color: '#2196f3',
+                            weight: 2,
+                            opacity: 0.5
+                        }).addTo(map);
+                        routeLines.push(line);
+
+                        map.removeLayer(currentLocationMarker);
+                    }
+
+                    // Mark as visited
+                    if (markers[child.child]) {
+                        markers[child.child].setStyle({ fillColor: '#9e9e9e' });
+                    }
+
+                    // Update current location
+                    currentLocationMarker = L.marker([child.latitude, child.longitude], {
+                        icon: L.divIcon({
+                            className: 'custom-marker',
+                            html: '<div style="background: #ffa500; width: 15px; height: 15px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 10px rgba(255,165,0,0.8);"></div>',
+                            iconSize: [15, 15]
+                        })
+                    }).addTo(map);
+
+                    // Pan to current location
+                    map.panTo([child.latitude, child.longitude]);
+                }
+            }
+
+            currentStopIndex++;
+        }
+
+        // Create snowflakes effect
+        function createSnowflakes() {
+            const snowflakeCount = 30;
+            for (let i = 0; i < snowflakeCount; i++) {
+                setTimeout(() => {
+                    const snowflake = document.createElement('div');
+                    snowflake.className = 'snowflake';
+                    snowflake.textContent = '❄';
+                    snowflake.style.left = Math.random() * 100 + '%';
+                    snowflake.style.animationDuration = (Math.random() * 5 + 5) + 's';
+                    snowflake.style.opacity = Math.random();
+                    snowflake.style.fontSize = (Math.random() * 1 + 0.5) + 'em';
+                    document.body.appendChild(snowflake);
+
+                    setTimeout(() => {
+                        snowflake.remove();
+                    }, 10000);
+                }, i * 100);
+            }
+
+            // Repeat
+            setTimeout(createSnowflakes, 3000);
+        }
+
+        // Initialize on load
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
