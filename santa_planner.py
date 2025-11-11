@@ -286,11 +286,39 @@ class SantaPlanner:
 
 def main():
     """Main entry point"""
+    import sys
+    import os
+
     print("Santa Route Planner")
     print("=" * 60)
 
+    # Find the Excel file
+    if len(sys.argv) > 1:
+        excel_file = sys.argv[1]
+    else:
+        # Look for the file in current directory
+        excel_file = 'Kopie von Santa Planner.xlsx'
+        if not os.path.exists(excel_file):
+            # Try common locations
+            possible_paths = [
+                '/home/user/Test/Kopie von Santa Planner.xlsx',
+                './Kopie von Santa Planner.xlsx',
+                os.path.join(os.getcwd(), 'Kopie von Santa Planner.xlsx')
+            ]
+            for path in possible_paths:
+                if os.path.exists(path):
+                    excel_file = path
+                    break
+            else:
+                print("Error: Could not find 'Kopie von Santa Planner.xlsx'")
+                print(f"Current directory: {os.getcwd()}")
+                print("\nUsage: python3 santa_planner.py [path/to/excel_file.xlsx]")
+                sys.exit(1)
+
+    print(f"Using Excel file: {excel_file}\n")
+
     # Initialize planner
-    planner = SantaPlanner('/home/user/Test/Kopie von Santa Planner.xlsx')
+    planner = SantaPlanner(excel_file)
 
     # Generate route plan
     print("\nGenerating optimal route plan...")
